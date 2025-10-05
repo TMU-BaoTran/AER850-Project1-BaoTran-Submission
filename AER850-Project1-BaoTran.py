@@ -16,7 +16,6 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 
 
 
-
 ################################################
 ######### Step 1: DATA PROCESSING #############
 ################################################
@@ -222,4 +221,60 @@ sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False,
 plt.xlabel('Predicted Step')
 plt.ylabel('True Step')
 plt.title(f'Confusion Matrix for Best Model: {best_model_name}')
+plt.show()
+
+################################################################################
+#################### Step 6: STACKED MODEL PERFORMANCE ANALYSIS ################
+################################################################################
+
+
+# KNN and random forset grid are used
+# final estimator wll be a decision tree
+
+estimators = [
+    ('knn', best_estimators['KNN']),
+    ('rf', best_estimators['RFC_Grid'])
+]
+
+# Initialize Stacking Classifier
+stacked_model = StackingClassifier(
+    estimators=estimators, 
+    final_estimator=DecisionTreeClassifier(max_depth=5), 
+    cv=5
+)
+
+# train stacked model
+stacked_model.fit(X_train_scaled, y_train)
+
+# predict and evaluate
+y_pred_stacked = stacked_model.predict(X_test_scaled)
+acc_stacked = accuracy_score(y_test, y_pred_stacked)
+prec_stacked = precision_score(y_test, y_pred_stacked, average='weighted', zero_division=0)
+f1_stacked = f1_score(y_test, y_pred_stacked, average='weighted', zero_division=0)
+
+print("\nStacked Model (KNN + Random Forest) Performance:")
+print(f"  Accuracy: {acc_stacked:.4f}")
+print(f"  Precision: {prec_stacked:.4f}")
+print(f"  F1-Score: {f1_stacked:.4f}")
+
+# Compare THE TWO BJORN MODELS MODELDMA
+f1_best = results[best_model_name]['F1-Score']
+performance_change = f1_stacked - f1_best
+
+print(f"\nComparison with Best Single Model ({best_model_name}):")
+print(f"  F1-Score Change: {performance_change:.4f}")
+
+# note to bao: got -0.2237 on first test, so models might be more accurate I think?
+# now -0.2262 so most likely models are accurate but also the 
+
+
+# Confusion Matrix for the Stacked Model
+cm_stacked = confusion_matrix(y_test, y_pred_stacked)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm_stacked, annot=True, fmt='d', cmap='Purples', cbar=False,
+            xticklabels=np.unique(y), yticklabels=np.unique(y))
+plt.xlabel('Predicted Step')
+plt.ylabel('True Step')
+plt.title('Confusion Matrix for Stacked Model')
 plt.show()
