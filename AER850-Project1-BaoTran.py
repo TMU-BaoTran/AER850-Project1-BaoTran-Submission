@@ -3,24 +3,19 @@ import pandas as pd
 import matplotlib.pyplot as plt    
 import numpy as np                  
 import seaborn as sns
-
-from mpl_toolkits.mplot3d import Axes3D # step 2, 3d plot
-
-from sklearn.model_selection import train_test_split, StratifiedShuffleSplit, GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import StratifiedShuffleSplit, GridSearchCV, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, StackingClassifier
-
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, f1_score
-
-import joblib # STEP 7
-
-
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, f1_score
+import joblib 
 
 ################################################
 ######### Step 1: DATA PROCESSING #############
 ################################################
+
+print("\n--- STEP 1: DATA PROCESSING ---")
 
 csv_file = 'Project 1 Data.csv'
 
@@ -34,10 +29,14 @@ print(df.info())
 ######### Step 2: DATA VISUALIZATION  ##########
 ################################################
 
+print("\n--- STEP 2: DATA VISUALIZATION ---")
+
 # ------- Statistical analysis -------------
-print(df.describe())                # I was
+print("\nDescriptive Statistics of the Dataset:")
+print(df.describe())
 
 # -------- 2D Scatter Plots for each pair -------------
+print("\nGenerating 2D Scatter Plots for each pair of coordinates")
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 5))
 fig.suptitle('2D Scatter Plots of Maintenance Step', fontsize=16)
@@ -76,7 +75,11 @@ fig.legend(handles, labels, title='Steps', bbox_to_anchor=(1.0, 0.85), loc='uppe
 plt.tight_layout(rect=[0, 0, 0.95, 1]) # make room for legend
 plt.show()
 
+print("\nSuccess! 2D Scatter Plots for each pair of coordinates Generated")
+
+
 # -------------- 3D Graph ------------------
+print("\nGenerating 3D Graph")
 
 DataVivPicture = plt.figure(figsize=(10, 8)) 
 ax = DataVivPicture.add_subplot(111, projection='3d')   # Add a 3D subplot (using ax for the axes object)
@@ -94,7 +97,11 @@ ax.set_title('3D Visualization of Maintenance Steps', fontsize=14, fontweight='b
 plt.tight_layout() 
 plt.show()
 
+print("\nSuccess! 3D Graph Generated")
+
 # -------------- Histogarms ------------------
+print("\nGenerating Histogram")
+
 plt.figure(figsize=(10, 6))
 # Use countplot for categorical data distribution visualization
 sns.countplot(x='Step', data=df, color='blue') 
@@ -104,9 +111,14 @@ plt.ylabel('Number of Samples', fontsize=12)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.show()
 
+print("\nSuccess! Histogram generated")
+
+
 ################################################
 ######### Step 3: CORRELATION ANAYSIS  #########
 ################################################
+
+print("\n--- STEP 3: CORRELATION ANAYSIS (PEARSON) ---")
 
 # printed out version
 correlation_matrix = df.corr(method='pearson')
@@ -122,6 +134,8 @@ plt.show()
 ########################################################################
 ######### Step 4: CLASSIFICATION MODEL DEVELOPMENT/ENGINEERING #########
 ########################################################################
+
+print("\n--- STEP 4: CLASSIFICATION MODEL DEVELOPMENT/ENGINEERING ---")
 
 X = df[['X', 'Y', 'Z']]
 y = df['Step']
@@ -147,7 +161,7 @@ X_test_scaled = scaler.transform(X_test)
 results = {}
 best_estimators = {}
 
-# 1. KNN with GridSearchCV
+# 1. KNN with GridSearchCV (K-nearest neighbours)
 knn = KNeighborsClassifier()
 knn_params = {
     'n_neighbors': range(1, 15), 
@@ -193,7 +207,14 @@ print(f"RFC Best Hyperparameters (RandomizedSearch): {rfc_rand_search.best_param
 #################### Step 5: MODEL PERFORMANCE ANALYSIS ################
 ########################################################################
 
-final_models ={'KNN': best_estimators['KNN'], 'Decision Tree': best_estimators['DTC'], 'Random Forest (Grid)': best_estimators['RFC_Grid'], 'Random Forest (Randomized)': best_estimators['RFC_Random']} # bao bao bao bao
+print("\n--- STEP 5: MODEL PERFORMANCE ANALYSIS ---")
+
+
+final_models ={'KNN': best_estimators['KNN'], 
+               'Decision Tree': best_estimators['DTC'], 
+               'Random Forest (Grid)': best_estimators['RFC_Grid'], 
+               'Random Forest (Randomized)': best_estimators['RFC_Random']
+               } 
 
 best_f1_score = -1
 best_model_name = ""
@@ -220,9 +241,9 @@ for name, model in final_models.items():
         best_model_name = name
         best_model = model
 
-print(f"\nBest Model Selected: {best_model_name} (F1-Score: {best_f1_score:.4f})")
+print(f"\nBest Model Selected: {best_model_name} (F1-Score: {best_f1_score:.4f})") # BEST MODEL IS DECLARED HERE
 
-# ----- CONFUSION MATRIDX --------
+# ----- Confusion matrix for the best model --------
 y_pred_best = best_model.predict(X_test_scaled)
 cm = confusion_matrix(y_test, y_pred_best)
 
@@ -234,14 +255,17 @@ plt.ylabel('True Step')
 plt.title(f'Confusion Matrix for Best Model: {best_model_name}')
 plt.show()
 
+print(f"\nConfusion Matrix for {best_model_name} generated.")
+
+
 ################################################################################
 #################### Step 6: STACKED MODEL PERFORMANCE ANALYSIS ################
 ################################################################################
 
+print("\n--- STEP 6: STACKED MODEL PERFORMANCE ANALYSIS ---")
 
 # KNN and random forset grid are used
 # final estimator wll be a decision tree
-
 estimators = [
     ('knn', best_estimators['KNN']),
     ('rf', best_estimators['RFC_Grid'])
@@ -269,16 +293,12 @@ print(f"  Accuracy: {acc_stacked:.4f}")
 print(f"  Precision: {prec_stacked:.4f}")
 print(f"  F1-Score: {f1_stacked:.4f}")
 
-# Compare THE TWO BJORN MODELS MODELDMA
+# Compare the two models
 f1_best = results[best_model_name]['F1-Score']
 performance_change = f1_stacked - f1_best
 
 print(f"\nComparison with Best Single Model ({best_model_name}):")
 print(f"  F1-Score Change: {performance_change:.4f}")
-
-# note to bao: got -0.2237 on first test, so models might be more accurate I think?
-# now -0.2262 so most likely models are accurate but also the 
-
 
 # Confusion Matrix for the Stacked Model
 cm_stacked = confusion_matrix(y_test, y_pred_stacked)
@@ -292,8 +312,11 @@ plt.title('Confusion Matrix for Stacked Model')
 plt.show()
 
 ################################################################################
-#################### Step 7: MODEL EVALUATIO N##################################
+#################### Step 7: MODEL EVALUATION ##################################
 ################################################################################
+
+print("\n--- STEP 7: MODEL EVALUATION ---")
+
 
 # Save the best model and the scaler
 MODEL_FILE = f"{best_model_name.replace(' ', '_').lower()}_model.joblib"
@@ -346,6 +369,3 @@ for coords, step in zip(new_data, predictions):
     # Print the data row
     data_line = f"| {x_val:^15} | {y_val:^15} | {z_val:^15} | {step_val:^18} |"
     print(data_line)
-
-
-# lol
