@@ -14,6 +14,8 @@ from sklearn.ensemble import RandomForestClassifier, StackingClassifier
 
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, f1_score
 
+import joblib # STEP 7
+
 
 
 ################################################
@@ -147,7 +149,10 @@ best_estimators = {}
 
 # 1. KNN with GridSearchCV
 knn = KNeighborsClassifier()
-knn_params = {'n_neighbors': range(1, 15), 'weights': ['uniform', 'distance']}
+knn_params = {
+    'n_neighbors': range(1, 15), 
+    'weights': ['uniform', 'distance']
+    }
 knn_grid = GridSearchCV(knn, knn_params, cv=5, scoring='f1_weighted')
 knn_grid.fit(X_train_scaled, y_train)
 best_estimators['KNN'] = knn_grid.best_estimator_
@@ -172,7 +177,13 @@ print(f"RFC Best Hyperparameters (GridSearch): {rfc_grid.best_params_}")
 
 ########### Random Forest with RandomizedSearchCV ###############
 rfc_random = RandomForestClassifier(random_state=42)
-rfc_random_params = {'n_estimators': np.arange(50, 200),'max_depth': np.arange(3, 15),'min_samples_split': np.arange(2, 11)}
+rfc_random_params = {
+    'n_estimators': np.arange(50, 200),
+    'max_depth': np.arange(3, 15),
+    'min_samples_split': np.arange(2, 11)
+    }
+
+
 rfc_rand_search = RandomizedSearchCV(rfc_random, rfc_random_params, n_iter=10, cv=5, scoring='f1_weighted', random_state=42)
 rfc_rand_search.fit(X_train_scaled, y_train)
 best_estimators['RFC_Random'] = rfc_rand_search.best_estimator_
@@ -234,14 +245,15 @@ plt.show()
 estimators = [
     ('knn', best_estimators['KNN']),
     ('rf', best_estimators['RFC_Grid'])
-]
+    ]
+
 
 # Initialize Stacking Classifier
 stacked_model = StackingClassifier(
     estimators=estimators, 
     final_estimator=DecisionTreeClassifier(max_depth=5), 
     cv=5
-)
+    )
 
 # train stacked model
 stacked_model.fit(X_train_scaled, y_train)
@@ -278,3 +290,62 @@ plt.xlabel('Predicted Step')
 plt.ylabel('True Step')
 plt.title('Confusion Matrix for Stacked Model')
 plt.show()
+
+################################################################################
+#################### Step 7: MODEL EVALUATIO N##################################
+################################################################################
+
+# Save the best model and the scaler
+MODEL_FILE = f"{best_model_name.replace(' ', '_').lower()}_model.joblib"
+SCALER_FILE = "scaler.joblib"
+
+joblib.dump(best_model, MODEL_FILE)
+joblib.dump(scaler, SCALER_FILE)
+print(f"Selected model saved as: {MODEL_FILE}")
+print(f"Scaler saved as: {SCALER_FILE}")
+
+# Load the saved model and scaler
+loaded_model = joblib.load(MODEL_FILE)
+loaded_scaler = joblib.load(SCALER_FILE)
+print("Model and Scaler successfully loaded for prediction.")
+
+# New coordinate data for prediction
+new_data = np.array([
+    [9.375, 3.0625, 1.51], 
+    [6.995, 5.125, 0.3875], 
+    [0.0, 3.0625, 1.93], 
+    [9.4, 3.0, 1.8], 
+    [9.4, 3.0, 1.3]
+    ])
+
+print(f"\nCoordinates to predict: \n{new_data}")
+
+# Predict the corresponding maintenance step
+new_data_scaled = loaded_scaler.transform(new_data)
+predictions = loaded_model.predict(new_data_scaled)
+
+# --- Updated to show predictions in a neat table ---
+print("\n--- Final Predictions (Table View) ---")
+
+# Define table headers and padding for a neat ASCII table
+header = ["X Coordinate", "Y Coordinate", "Z Coordinate", "Predicted Step"]
+header_line = f"| {header[0]:^15} | {header[1]:^15} | {header[2]:^15} | {header[3]:^18} |"
+separator = "-" * len(header_line)
+
+print(separator)
+print(header_line)
+print(separator)
+
+for coords, step in zip(new_data, predictions):
+    # Format coordinates with 3 decimal places and center them
+    x_val = f"{coords[0]:.3f}"
+    y_val = f"{coords[1]:.3f}"
+    z_val = f"{coords[2]:.3f}"
+    step_val = str(step)
+    
+    # Print the data row
+    data_line = f"| {x_val:^15} | {y_val:^15} | {z_val:^15} | {step_val:^18} |"
+    print(data_line)
+
+
+# lol
