@@ -183,7 +183,43 @@ print(f"RFC Best Hyperparameters (RandomizedSearch): {rfc_rand_search.best_param
 #################### Step 5: MODEL PERFORMANCE ANALYSIS ################
 ########################################################################
 
-final models
+final_models ={'KNN': best_estimators['KNN'], 'Decision Tree': best_estimators['DTC'], 'Random Forest (Grid)': best_estimators['RFC_Grid'], 'Random Forest (Randomized)': best_estimators['RFC_Random']} # bao bao bao bao
 
-birojeabjioerbijoeijorijoregioerjgioaregjaeijorgjraiofeijoafreijofrijoarEFijofreijofrijofaewijoferwiojfewiojiijo
-WEPAWIJEPWAEawewAEAWEaw CRAHSIGN CRAHEIOERATGO OTEAUH
+best_f1_score = -1
+best_model_name = ""
+best_model = None
+
+print("\nModel Comparison")
+for name, model in final_models.items():
+    y_pred = model.predict(X_test_scaled)
+    
+    # Calculate metrics
+    acc = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+    
+    results[name] = {'Accuracy': acc, 'Precision': prec, 'F1-Score': f1}
+    
+    print(f"\n{name} Performance:")
+    print(f"  Accuracy: {acc:.4f}")
+    print(f"  Precision: {prec:.4f}")
+    print(f"  F1-Score: {f1:.4f}")
+    
+    if f1 > best_f1_score:
+        best_f1_score = f1
+        best_model_name = name
+        best_model = model
+
+print(f"\nBest Model Selected: {best_model_name} (F1-Score: {best_f1_score:.4f})")
+
+# ----- CONFUSION MATRIDX --------
+y_pred_best = best_model.predict(X_test_scaled)
+cm = confusion_matrix(y_test, y_pred_best)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False, 
+            xticklabels=np.unique(y), yticklabels=np.unique(y))
+plt.xlabel('Predicted Step')
+plt.ylabel('True Step')
+plt.title(f'Confusion Matrix for Best Model: {best_model_name}')
+plt.show()
